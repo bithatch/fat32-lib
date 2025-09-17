@@ -92,7 +92,12 @@ public final class FatFileSystem extends AbstractFileSystem {
             this.fsiSector = FsInfoSector.read(f32bs);
             
             if (fsiSector.getFreeClusterCount() < fat.getFreeClusterCount()) {
-                throw new IOException("free cluster count mismatch - fat: " +
+            	if(Boolean.getBoolean("fat32lib.strictFreeClusterCount"))
+	                throw new IOException("FAT file system free cluster count mismatch - fat: " +
+	                        fat.getFreeClusterCount() + " - fsinfo: " +
+	                        fsiSector.getFreeClusterCount());
+            	else if(!Boolean.getBoolean("fat32lib.hideFreeClusterCountWarning")) 
+            		System.err.println("FAT file system free cluster count mismatch - fat: " +
                         fat.getFreeClusterCount() + " - fsinfo: " +
                         fsiSector.getFreeClusterCount());
             }

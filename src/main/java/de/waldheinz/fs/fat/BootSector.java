@@ -65,6 +65,9 @@ abstract class BootSector extends Sector {
      * The size of a boot sector in bytes.
      */
     public final static int SIZE = 512;
+
+	private static final int FAT_TYPE_OFFSET = 0x52;
+	private static final int FAT_TYPE_LENGTH = 8;
     
     protected BootSector(BlockDevice device) {
         super(device, 0, SIZE);
@@ -108,11 +111,24 @@ abstract class BootSector extends Sector {
         final long dataSectors = totalSectors - (reservedSectors +
                 (fatCount * fatSz) + rootDirSectors);
                 
-        final long clusterCount = dataSectors / sectorsPerCluster;
         
-        final BootSector result =
-                (clusterCount > Fat16BootSector.MAX_FAT16_CLUSTERS) ?
-            new Fat32BootSector(device) : new Fat16BootSector(device);
+        final long clusterCount = dataSectors / sectorsPerCluster;
+
+        byte[] str = new byte[FAT_TYPE_LENGTH];
+        bb.position(FAT_TYPE_OFFSET);
+        bb.get(str, 0, str.length);
+        final String fsType = new String(str);
+
+        BootSector result;
+        if (fsType.trim().equals("FAT32")) {
+            // Force override if label says FAT32, even if cluster count is low
+        	result = new Fat32BootSector(device);
+        }
+        else if (clusterCount < 65525) {
+        	result = new Fat16BootSector(device);
+        } else {
+        	result = new Fat32BootSector(device);
+        }
             
         result.read();
         return result;
